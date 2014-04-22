@@ -6,13 +6,13 @@ object ImmutableObjectGenerator {
 
     s"""package ${model.packageName}
 
-public final class ${model.name} {
+public final class ${model.className} {
 }"""
 
   }
 
 }
 
-case class Class(val packageName: String, val name: String)
+case class Class(val packageName: String, val className: String)
 
 case class Settings(val fieldPrefix: String = "")
