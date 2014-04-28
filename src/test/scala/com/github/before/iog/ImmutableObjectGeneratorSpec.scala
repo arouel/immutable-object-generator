@@ -6,17 +6,27 @@ import ImmutableObjectGenerator._
 class ImmutableObjectGeneratorSpec extends Specification {
 
   "The generator" should {
-    
+
+    val pkg = Package(Seq("org", "github", "before", "test"))
+    val listType = Import.fullyQualifiedName("java.util.List")
+    val imports = Set(listType)
+    val fields = Seq(Field(Seq(), false, true, listType, "myList", null))
+    val methods = Seq(Method(Seq(), false, true, listType, Seq(), "getMyList", null))
+    val clazz = Class(Public, true, "MyTestClass", fields, methods, Seq())
+    val types = Seq(clazz)
+    val compilationUnit = CompilationUnit(pkg, imports, types)
+
     "starts with package" in {
-      generate(Class("com.github.before.iog.test", "MyTestClass"), Settings()) must startWith("package")
+      generate(compilationUnit, Settings()) must startWith("package")
     }
- 
+
     "ends with }" in {
-      generate(Class("com.github.before.iog.test", "MyTestClass"), Settings()) must endWith("}")
+      generate(compilationUnit, Settings()) must endWith("}")
     }
-  
+
     "contains class name" in {
-      generate(Class("com.github.before.iog.test", "MyTestClass"), Settings()) must contain("public final class MyTestClass ")
+      generate(compilationUnit, Settings()) must contain("public final class MyTestClass ")
     }
   }
+
 }
