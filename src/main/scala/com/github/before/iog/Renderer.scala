@@ -27,7 +27,7 @@ object Renderer {
       name,
       fields,
       methods,
-      types) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n}"
+      types) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n\n" + renderWithSeparator(fields, "\n\n") + "\n\n}"
     case CompilationUnit(pkg, imports, types) => render(pkg) + "\n\n" + renderWithSeparator(imports, "\n") + "\n\n" + renderWithSeparator(types, "\n")
     case Field(
       annotations,
