@@ -29,12 +29,36 @@ object Renderer {
       methods,
       types) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n}"
     case CompilationUnit(pkg, imports, types) => render(pkg) + "\n\n" + renderWithSeparator(imports, "\n") + "\n\n" + renderWithSeparator(types, "\n")
+    case Field(
+      annotations,
+      accessModifier,
+      staticModifier,
+      finalModifier,
+      t,
+      name,
+      value
+      ) => renderAnnotations(annotations) + renderAccessModifier(accessModifier) + renderStaticModifier(staticModifier) + renderFinalModifier(finalModifier) + renderFieldType(t) + " " + name + renderFieldValue(value) + ";"
     case Import(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
     case Package(ps) => if (ps.isEmpty) "" else "package " + ps.mkString(".")
   }
 
   private def renderAccessModifier(accessModifier: AccessModifier): String = if (accessModifier == Default) "" else render(accessModifier) + " "
+  private def renderAnnotations(annotations: Seq[Annotation]): String = if (annotations.isEmpty) "" else renderWithSeparator(annotations, "\n") + "\n"
+  private def renderFieldValue(value: String): String = if (value == null) "" else " = " + value
   private def renderFinalModifier(finalModifier: Boolean): String = if (finalModifier) "final " else ""
+  private def renderFieldType(t: Type): String = t match {
+    case p: Primitive => render(p)
+    case Void => "Void"
+    case Import(pkg, name) => name
+    case Class(
+      accessModifier,
+      finalModifier,
+      name,
+      fields,
+      methods,
+      types) => name
+  }
+  private def renderStaticModifier(staticModifier: Boolean): String = if (staticModifier) "static " else ""
   private def renderWithSeparator[T <: Renderable](elements: Iterable[T], separator: String): String = elements.map(i => render(i)).mkString(separator)
 
 }
@@ -44,12 +68,12 @@ sealed trait Renderable
 case class Annotation(
   val pkg: Package,
   val name: String)
-  extends Type with Renderable
+  extends Renderable
 
 /**
  * A data type
  */
-trait Type
+sealed trait Type extends Renderable
 
 /**
  * A simple data type is a primitive type or void.
@@ -122,11 +146,13 @@ case class Class(
 
 case class Field(
   val annotations: Seq[Annotation],
+  val accessModifier: AccessModifier,
   val staticModifier: Boolean,
   val finalModifier: Boolean,
   val `type`: Type,
   val name: String,
   val value: String)
+  extends Renderable
 
 case class Argument(
   val annotations: Seq[Annotation],

@@ -25,6 +25,20 @@ class RendererSpec extends Specification {
       render(Annotation(Package(Seq()), "Nullable")) must equalTo("@Nullable")
       render(Annotation(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("@Nonnull")
     }
+    "render fields" in {
+      render(Field(Seq(), Default, false, false, Char, "character", "'c'")) must equalTo("char character = 'c';")
+      render(Field(Seq(), Private, false, true, Int, "number", null)) must equalTo("private final int number;")
+      render(Field(Seq(), Private, true, true, Int, "number", null)) must equalTo("private static final int number;")
+      render(Field(Seq(), Private, false, true, Int, "number", "1")) must equalTo("private final int number = 1;")
+      render(Field(Seq(), Default, false, false, Void, "intoTheVoid", null)) must equalTo("Void intoTheVoid;")
+
+      val string = Import.fullyQualifiedName("java.lang.String");
+      val nonnull = Annotation(Package(Seq("javax", "annotation")), "Nonnull")
+      render(Field(Seq(nonnull), Public, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\npublic String text = \"some text\";")
+
+      val pattern = Annotation(Package(Seq("javax", "annotation")), "Pattern")
+      render(Field(Seq(nonnull, pattern), Default, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\n@Pattern\nString text = \"some text\";")
+    }
     "render imports" in {
       render(Import(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("import javax.annotation.Nonnull;")
     }

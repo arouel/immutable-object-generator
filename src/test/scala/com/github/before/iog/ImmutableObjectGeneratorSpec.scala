@@ -10,7 +10,7 @@ class ImmutableObjectGeneratorSpec extends Specification {
     val pkg = Package(Seq("org", "github", "before", "test"))
     val listType = Import.fullyQualifiedName("java.util.List")
     val imports = Set(listType)
-    val fields = Seq(Field(Seq(), false, true, listType, "myList", null))
+    val fields = Seq(Field(Seq(), Private, false, true, listType, "myList", null))
     val methods = Seq(Method(Seq(), false, true, listType, Seq(), "getMyList", null))
     val clazz = Class(Public, true, "MyTestClass", fields, methods, Seq())
     val types = Seq(clazz)
