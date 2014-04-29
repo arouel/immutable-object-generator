@@ -28,13 +28,14 @@ object Renderer {
       fields,
       methods,
       types) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n}"
-    case CompilationUnit(pkg, is, types) => render(pkg) + "\n\n" + is.map(i => render(i)).mkString("\n") + "\n\n" + types.map(t => render(t)).mkString("\n")
+    case CompilationUnit(pkg, imports, types) => render(pkg) + "\n\n" + renderWithSeparator(imports, "\n") + "\n\n" + renderWithSeparator(types, "\n")
     case Import(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
     case Package(ps) => if (ps.isEmpty) "" else "package " + ps.mkString(".")
   }
 
   private def renderAccessModifier(accessModifier: AccessModifier): String = if (accessModifier == Default) "" else render(accessModifier) + " "
   private def renderFinalModifier(finalModifier: Boolean): String = if (finalModifier) "final " else ""
+  private def renderWithSeparator[T <: Renderable](elements: Iterable[T], separator: String): String = elements.map(i => render(i)).mkString(separator)
 
 }
 
