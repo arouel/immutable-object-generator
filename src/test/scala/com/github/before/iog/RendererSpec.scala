@@ -61,13 +61,16 @@ class RendererSpec extends Specification {
     }
     "render class with fields" in {
       val field1 = Field(Seq(), Private, true, true, Int, "myNumber1", "23")
-      val field2 = Field(Seq(), Private, true, true, Int, "myNumber2", "24")
+      val field2 = Field(Seq(), Protected, false, false, Int, "myNumber2", "42")
       val clazz = Class(Public, false, "MyClass", Seq(field1, field2), Seq(), Seq())
+      render(clazz) must contain("class MyClass")
+      render(clazz) must contain("private static final int myNumber1 = 23;")
+      render(clazz) must contain("protected int myNumber2 = 42;")
       render(clazz) must equalTo("""public class MyClass {
 
 private static final int myNumber1 = 23;
 
-private static final int myNumber2 = 24;
+protected int myNumber2 = 42;
 
 }""")
     }
