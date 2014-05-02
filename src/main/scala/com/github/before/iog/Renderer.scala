@@ -89,17 +89,12 @@ case class Annotation(
   extends Renderable
 
 /**
- * A data type
+ * A data type that can be a primitive type that are built in to the Java language or a reference type.
  */
 sealed trait Type extends Renderable
 
 /**
- * A simple data type is a primitive type or void.
- */
-sealed trait SimpleType extends Type
-
-/**
- * A reference type is a data type that’s based on a class rather than on one of the primitive types that are built in to the Java language.
+ * A definition of a reference type e.g. an interface, class or enum.
  */
 sealed trait TypeDefinition extends Type with Renderable {
   def name: String
@@ -129,7 +124,7 @@ object Import {
 /**
  * Primitive data types are defined by the language itself.
  */
-sealed abstract class Primitive extends SimpleType with Renderable
+sealed abstract class Primitive extends Type with Renderable
 case object Boolean extends Primitive
 case object Byte extends Primitive
 case object Char extends Primitive
@@ -151,7 +146,7 @@ case object Protected extends AccessModifier
 /**
  * Void is not a type and means *nothing*
  */
-case object Void extends SimpleType with Renderable
+case object Void extends Type with Renderable
 
 case class Class(
   val accessModifier: AccessModifier,
