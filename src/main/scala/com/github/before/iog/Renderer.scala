@@ -19,8 +19,13 @@ object Renderer {
     case Protected => "protected"
     case Public => "public"
 
-    // everthing else
+    // everything else
     case Annotation(pkg, name) => "@" + name
+    case Argument(annotations, finalModifier, t, name) =>
+      renderAnnotations(annotations, " ") +
+        renderFinalModifier(finalModifier) +
+        renderFieldType(t) +
+        renderName(name)
     case Class(
       accessModifier,
       finalModifier,
@@ -37,13 +42,24 @@ object Renderer {
       t,
       name,
       value
-      ) => renderAnnotations(annotations) + renderAccessModifier(accessModifier) + renderStaticModifier(staticModifier) + renderFinalModifier(finalModifier) + renderFieldType(t) + " " + name + renderFieldValue(value) + ";"
+      ) =>
+      renderAnnotations(annotations) + renderAccessModifier(accessModifier) + renderStaticModifier(staticModifier) + renderFinalModifier(finalModifier) + renderFieldType(t) + " " + name + renderFieldValue(value) + ";"
+    case Method(annotations, accessModifier, staticModifier, finalModifier, returnType, args, name, body) =>
+      renderAnnotations(annotations) +
+        renderAccessModifier(accessModifier) +
+        renderStaticModifier(staticModifier) +
+        renderFinalModifier(finalModifier) +
+        renderFieldType(returnType) +
+        renderName(name) +
+        renderArguments(args) +
+        renderMethodBody(body)
     case Import(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
     case Package(ps) => if (ps.isEmpty) "" else "package " + ps.mkString(".")
   }
 
   private def renderAccessModifier(accessModifier: AccessModifier): String = if (accessModifier == Default) "" else render(accessModifier) + " "
-  private def renderAnnotations(annotations: Seq[Annotation]): String = if (annotations.isEmpty) "" else renderWithSeparator(annotations, "\n") + "\n"
+  private def renderAnnotations(annotations: Seq[Annotation], separator: String = "\n"): String = if (annotations.isEmpty) "" else renderWithSeparator(annotations, separator) + separator
+  private def renderArguments(arguments: Seq[Argument]): String = if (arguments.isEmpty) "() " else "(" + renderWithSeparator(arguments, ", ") + ") "
   private def renderFieldValue(value: String): String = if (value == null) "" else " = " + value
   private def renderFinalModifier(finalModifier: Boolean): String = if (finalModifier) "final " else ""
   private def renderFieldType(t: Type): String = t match {
@@ -58,6 +74,8 @@ object Renderer {
       methods,
       types) => name
   }
+  private def renderMethodBody(body: String): String = s"{\n$body\n}"
+  private def renderName(name: String): String = " " + name
   private def renderStaticModifier(staticModifier: Boolean): String = if (staticModifier) "static " else ""
   private def renderWithSeparator[T <: Renderable](elements: Iterable[T], separator: String): String = elements.map(i => render(i)).mkString(separator)
 
@@ -159,12 +177,15 @@ case class Argument(
   val finalModifier: Boolean,
   val `type`: Type,
   val name: String)
+  extends Renderable
 
 case class Method(
   val annotations: Seq[Annotation],
+  val accessModifier: AccessModifier,
   val staticModifier: Boolean,
   val finalModifier: Boolean,
   val returnType: Type,
   val args: Seq[Argument],
   val name: String,
   val body: String)
+  extends Renderable

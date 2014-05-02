@@ -21,9 +21,31 @@ class RendererSpec extends Specification {
   }
 
   "Renderer" should {
+
+    // imports
+    val list = Import.fullyQualifiedName("java.util.List");
+    val long = Import.fullyQualifiedName("java.lang.Long");
+    val string = Import.fullyQualifiedName("java.lang.String");
+
+    // annotations
+    val nonnull = Annotation(Package(Seq("javax", "annotation")), "Nonnull")
+    val nullable = Annotation(Package(Seq("javax", "annotation")), "Nullable")
+    val nonnegative = Annotation(Package(Seq("javax", "annotation")), "Nonnegative")
+
+    // arguments
+    val numberArg = Argument(Seq(), false, Int, "number")
+    val textArg = Argument(Seq(nonnull), true, string, "text")
+    val listArg = Argument(Seq(nonnull), true, list, "list")
+
     "render annotations" in {
       render(Annotation(Package(Seq()), "Nullable")) must equalTo("@Nullable")
       render(Annotation(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("@Nonnull")
+    }
+    "render arguments" in {
+      render(Argument(Seq(), false, Int, "number")) must equalTo("int number")
+      render(Argument(Seq(), true, string, "text")) must equalTo("final String text")
+      render(Argument(Seq(nonnull), false, string, "text")) must equalTo("@Nonnull String text")
+      render(Argument(Seq(nonnull, nonnegative), true, long, "number")) must equalTo("@Nonnull @Nonnegative final Long number")
     }
     "render fields" in {
       render(Field(Seq(), Default, false, false, Char, "character", "'c'")) must equalTo("char character = 'c';")
@@ -32,8 +54,6 @@ class RendererSpec extends Specification {
       render(Field(Seq(), Private, false, true, Int, "number", "1")) must equalTo("private final int number = 1;")
       render(Field(Seq(), Default, false, false, Void, "intoTheVoid", null)) must equalTo("Void intoTheVoid;")
 
-      val string = Import.fullyQualifiedName("java.lang.String");
-      val nonnull = Annotation(Package(Seq("javax", "annotation")), "Nonnull")
       render(Field(Seq(nonnull), Public, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\npublic String text = \"some text\";")
 
       val pattern = Annotation(Package(Seq("javax", "annotation")), "Pattern")
@@ -41,6 +61,12 @@ class RendererSpec extends Specification {
     }
     "render imports" in {
       render(Import(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("import javax.annotation.Nonnull;")
+    }
+    "render methods" in {
+      render(Method(Seq(), Default, false, false, string, Seq(), "getName", "return name;")) must equalTo("String getName() {\nreturn name;\n}")
+      render(Method(Seq(nullable), Public, false, false, string, Seq(), "getName", "return name;")) must equalTo("@Nullable\npublic String getName() {\nreturn name;\n}")
+      render(Method(Seq(), Public, true, false, string, Seq(numberArg), "convert", "return String.format(\"a number %s\", number);")) must equalTo("public static String convert(int number) {\nreturn String.format(\"a number %s\", number);\n}")
+      render(Method(Seq(), Protected, false, true, list, Seq(numberArg, textArg, listArg), "doSomething", "return null;")) must equalTo("protected final List doSomething(int number, @Nonnull final String text, @Nonnull final List list) {\nreturn null;\n}")
     }
     "render packages" in {
       render(Package(Seq())) must equalTo("")
