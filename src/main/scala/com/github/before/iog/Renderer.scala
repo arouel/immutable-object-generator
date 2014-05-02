@@ -101,11 +101,11 @@ sealed trait SimpleType extends Type
 /**
  * A reference type is a data type that’s based on a class rather than on one of the primitive types that are built in to the Java language.
  */
-sealed trait ReferenceType extends Type with Renderable {
+sealed trait TypeDefinition extends Type with Renderable {
   def name: String
 }
 
-case class CompilationUnit(val pkg: Package, val imports: Set[Import], val types: Seq[ReferenceType]) extends Renderable
+case class CompilationUnit(val pkg: Package, val imports: Set[Import], val types: Seq[TypeDefinition]) extends Renderable
 
 case class Package(val parts: Seq[String]) extends Renderable
 
@@ -159,8 +159,8 @@ case class Class(
   override val name: String,
   val fields: Seq[Field],
   val methods: Seq[Method],
-  val types: Seq[ReferenceType])
-  extends ReferenceType
+  val types: Seq[TypeDefinition])
+  extends TypeDefinition
 
 case class Field(
   val annotations: Seq[Annotation],
