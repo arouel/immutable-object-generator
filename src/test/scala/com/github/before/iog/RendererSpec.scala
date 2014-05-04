@@ -5,27 +5,27 @@ import Renderer._
 
 class RendererSpec extends Specification {
 
-  "Import" should {
+  "TypeRef" should {
     "validate that package must not be empty" in {
-      Import(Package(Seq()), "some") must throwA(new IllegalArgumentException("requirement failed: package must not be empty"))
+      TypeRef(Package(Seq()), "some") must throwA(new IllegalArgumentException("requirement failed: package must not be empty"))
     }
     "validate that name must not be empty" in {
-      Import(Package(Seq("org", "github")), "") must throwA(new IllegalArgumentException("requirement failed: name must not be empty"))
+      TypeRef(Package(Seq("org", "github")), "") must throwA(new IllegalArgumentException("requirement failed: name must not be empty"))
     }
     "validates successfully" in {
-      Import(Package(Seq("org", "github", "before")), "Test") must equalTo(Import(Package(Seq("org", "github", "before")), "Test"))
+      TypeRef(Package(Seq("org", "github", "before")), "Test") must equalTo(TypeRef(Package(Seq("org", "github", "before")), "Test"))
     }
     "validates successfully by using a fully qualified name" in {
-      Import.fullyQualifiedName("org.github.before.Test") must equalTo(Import(Package(Seq("org", "github", "before")), "Test"))
+      TypeRef.fullyQualifiedName("org.github.before.Test") must equalTo(TypeRef(Package(Seq("org", "github", "before")), "Test"))
     }
   }
 
   "Renderer" should {
 
     // imports
-    val list = Import.fullyQualifiedName("java.util.List");
-    val long = Import.fullyQualifiedName("java.lang.Long");
-    val string = Import.fullyQualifiedName("java.lang.String");
+    val list = TypeRef.fullyQualifiedName("java.util.List");
+    val long = TypeRef.fullyQualifiedName("java.lang.Long");
+    val string = TypeRef.fullyQualifiedName("java.lang.String");
 
     // annotations
     val nonnull = Annotation(Package(Seq("javax", "annotation")), "Nonnull")
@@ -60,7 +60,7 @@ class RendererSpec extends Specification {
       render(Field(Seq(nonnull, pattern), Default, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\n@Pattern\nString text = \"some text\";")
     }
     "render imports" in {
-      render(Import(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("import javax.annotation.Nonnull;")
+      render(TypeRef(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("import javax.annotation.Nonnull;")
     }
     "render methods" in {
       render(Method(Seq(), Default, false, false, string, Seq(), "getName", "return name;")) must equalTo("String getName() {\nreturn name;\n}")

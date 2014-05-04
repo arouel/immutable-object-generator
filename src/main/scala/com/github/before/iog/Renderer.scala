@@ -53,7 +53,7 @@ object Renderer {
         renderName(name) +
         renderArguments(args) +
         renderMethodBody(body)
-    case Import(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
+    case TypeRef(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
     case Package(ps) => if (ps.isEmpty) "" else "package " + ps.mkString(".")
   }
 
@@ -65,7 +65,7 @@ object Renderer {
   private def renderFieldType(t: Type): String = t match {
     case p: Primitive => render(p)
     case Void => "Void"
-    case Import(pkg, name) => name
+    case TypeRef(pkg, name) => name
     case Class(
       accessModifier,
       finalModifier,
@@ -100,11 +100,11 @@ sealed trait TypeDefinition extends Type with Renderable {
   def name: String
 }
 
-case class CompilationUnit(val pkg: Package, val imports: Set[Import], val types: Seq[TypeDefinition]) extends Renderable
+case class CompilationUnit(val pkg: Package, val imports: Set[TypeRef], val types: Seq[TypeDefinition]) extends Renderable
 
 case class Package(val parts: Seq[String]) extends Renderable
 
-case class Import(
+case class TypeRef(
   val pkg: Package,
   val name: String)
   extends Type with Renderable {
@@ -112,12 +112,12 @@ case class Import(
   require(!name.isEmpty, "name must not be empty")
 }
 
-object Import {
-  def fullyQualifiedName(fqn: String): Import = {
+object TypeRef {
+  def fullyQualifiedName(fqn: String): TypeRef = {
     val parts = fqn.split('.')
     val pkg = Package(parts.dropRight(1))
     val name = parts.last
-    Import(pkg, name)
+    TypeRef(pkg, name)
   }
 }
 
