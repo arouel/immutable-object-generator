@@ -33,7 +33,12 @@ object Renderer {
       fields,
       methods,
       types,
-      pkg) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n\n" + renderWithSeparator(fields, "\n\n") + "\n\n}"
+      pkg) =>
+      renderAccessModifier(accessModifier) +
+        renderFinalModifier(finalModifier) +
+        "class " + name + " {" +
+        renderSection(fields, "\n\n") +
+        "\n\n}"
     case CompilationUnit(pkg, imports, types) =>
       renderPackageDeclaration(pkg) +
         renderSection(imports) +
@@ -47,7 +52,12 @@ object Renderer {
       name,
       value
       ) =>
-      renderAnnotations(annotations) + renderAccessModifier(accessModifier) + renderStaticModifier(staticModifier) + renderFinalModifier(finalModifier) + renderFieldType(t) + " " + name + renderFieldValue(value) + ";"
+      renderAnnotations(annotations) +
+        renderAccessModifier(accessModifier) +
+        renderStaticModifier(staticModifier) +
+        renderFinalModifier(finalModifier) +
+        renderFieldType(t) + " " + name +
+        renderFieldValue(value) + ";"
     case Method(annotations, accessModifier, staticModifier, finalModifier, returnType, args, name, body) =>
       renderAnnotations(annotations) +
         renderAccessModifier(accessModifier) +
