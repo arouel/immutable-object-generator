@@ -34,7 +34,10 @@ object Renderer {
       methods,
       types,
       pkg) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n\n" + renderWithSeparator(fields, "\n\n") + "\n\n}"
-    case CompilationUnit(pkg, imports, types) => render(pkg) + "\n\n" + renderWithSeparator(imports, "\n") + "\n\n" + renderWithSeparator(types, "\n")
+    case CompilationUnit(pkg, imports, types) =>
+      renderPackageDeclaration(pkg) +
+        renderSection(imports) +
+        renderSection(types)
     case Field(
       annotations,
       accessModifier,
@@ -54,8 +57,7 @@ object Renderer {
         renderName(name) +
         renderArguments(args) +
         renderMethodBody(body)
-    case TypeRef(pkg, name) => "import " + pkg.parts.mkString(".") + "." + name + ";"
-    case Package(ps) => if (ps.isEmpty) "" else "package " + ps.mkString(".")
+    case TypeRef(pkg, name) => if (pkg.isEmpty) "" else "import " + renderPackage(pkg.get) + "." + name + ";"
   }
 
   private def renderAccessModifier(accessModifier: AccessModifier): String = if (accessModifier == Default) "" else render(accessModifier) + " "
@@ -78,6 +80,12 @@ object Renderer {
   }
   private def renderMethodBody(body: String): String = s"{\n$body\n}"
   private def renderName(name: String): String = " " + name
+  private def renderPackage(pkg: Package): String = pkg.parts.mkString(".")
+  private def renderPackageDeclaration(pkg: Option[Package]): String = pkg match {
+    case Some(pkg) => "package " + renderPackage(pkg) + ";"
+    case _ => ""
+  }
+  private def renderSection[T <: Renderable](elements: Iterable[T], separator: String = "\n"): String = if (elements.isEmpty) "" else "\n\n" + renderWithSeparator(elements, separator)
   private def renderStaticModifier(staticModifier: Boolean): String = if (staticModifier) "static " else ""
   private def renderWithSeparator[T <: Renderable](elements: Iterable[T], separator: String): String = elements.map(i => render(i)).mkString(separator)
 
@@ -95,7 +103,7 @@ case class Annotation(
  */
 sealed trait Type extends Renderable {
   def name: String
-  def pkg: Package
+  def pkg: Option[Package]
 }
 
 /**
@@ -103,22 +111,24 @@ sealed trait Type extends Renderable {
  */
 sealed trait TypeDefinition extends Type with Renderable
 
-case class CompilationUnit(val pkg: Package, val imports: Set[TypeRef], val types: Seq[TypeDefinition]) extends Renderable
+case class CompilationUnit(val pkg: Option[Package], val imports: Set[TypeRef], val types: Seq[TypeDefinition]) extends Renderable
 
-case class Package(val parts: Seq[String] = Seq()) extends Renderable
+case class Package(val parts: Seq[String] = Seq()) {
+  require(!parts.isEmpty, "package must not be empty")
+}
 
 case class TypeRef(
-  val pkg: Package,
+  val pkg: Option[Package],
   val name: String)
   extends Type with Renderable {
-  require(!pkg.parts.isEmpty, "package must not be empty")
+  require(pkg.isDefined, "package must be defined")
   require(!name.isEmpty, "name must not be empty")
 }
 
 object TypeRef {
   def fullyQualifiedName(fqn: String): TypeRef = {
     val parts = fqn.split('.')
-    val pkg = Package(parts.dropRight(1))
+    val pkg = Some(Package(parts.dropRight(1)))
     val name = parts.last
     TypeRef(pkg, name)
   }
@@ -129,7 +139,7 @@ object TypeRef {
  */
 sealed abstract class Primitive extends Type with Renderable {
   def name = this.getClass.getName
-  def pkg = Package()
+  def pkg = None
 }
 case object Boolean extends Primitive
 case object Byte extends Primitive
@@ -154,7 +164,7 @@ case object Protected extends AccessModifier
  */
 case object Void extends Type with Renderable {
   def name = this.getClass.getName
-  def pkg = Package()
+  def pkg = None
 }
 
 case class Class(
@@ -164,7 +174,7 @@ case class Class(
   val fields: Seq[Field],
   val methods: Seq[Method],
   val types: Seq[TypeDefinition],
-  val pkg: Package = Package())
+  val pkg: Option[Package] = None)
   extends TypeDefinition
 
 case class Field(

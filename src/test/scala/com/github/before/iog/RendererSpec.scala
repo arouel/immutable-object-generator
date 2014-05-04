@@ -5,18 +5,27 @@ import Renderer._
 
 class RendererSpec extends Specification {
 
+  "Package" should {
+    "validate that parts must not be empty" in {
+      Package(Seq()) must throwA(new IllegalArgumentException("requirement failed: package must not be empty"))
+    }
+    "validates successfully if parts available" in {
+      Package(Seq("org", "github", "before")) must equalTo(Package(Seq("org", "github", "before")))
+    }
+  }
+
   "TypeRef" should {
     "validate that package must not be empty" in {
-      TypeRef(Package(Seq()), "some") must throwA(new IllegalArgumentException("requirement failed: package must not be empty"))
+      TypeRef(None, "Some") must throwA(new IllegalArgumentException("requirement failed: package must be defined"))
     }
     "validate that name must not be empty" in {
-      TypeRef(Package(Seq("org", "github")), "") must throwA(new IllegalArgumentException("requirement failed: name must not be empty"))
+      TypeRef(Some(Package(Seq("org", "github"))), "") must throwA(new IllegalArgumentException("requirement failed: name must not be empty"))
     }
     "validates successfully" in {
-      TypeRef(Package(Seq("org", "github", "before")), "Test") must equalTo(TypeRef(Package(Seq("org", "github", "before")), "Test"))
+      TypeRef(Some(Package(Seq("org", "github", "before"))), "Test") must equalTo(TypeRef(Some(Package(Seq("org", "github", "before"))), "Test"))
     }
     "validates successfully by using a fully qualified name" in {
-      TypeRef.fullyQualifiedName("org.github.before.Test") must equalTo(TypeRef(Package(Seq("org", "github", "before")), "Test"))
+      TypeRef.fullyQualifiedName("org.github.before.Test") must equalTo(TypeRef(Some(Package(Seq("org", "github", "before"))), "Test"))
     }
   }
 
@@ -38,8 +47,9 @@ class RendererSpec extends Specification {
     val listArg = Argument(Seq(nonnull), true, list, "list")
 
     "render annotations" in {
-      render(Annotation(Package(Seq()), "Nullable")) must equalTo("@Nullable")
-      render(Annotation(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("@Nonnull")
+      val pkg = Package(Seq("javax", "annotation"))
+      render(Annotation(pkg, "Nullable")) must equalTo("@Nullable")
+      render(Annotation(pkg, "Nonnull")) must equalTo("@Nonnull")
     }
     "render arguments" in {
       render(Argument(Seq(), false, Int, "number")) must equalTo("int number")
@@ -60,7 +70,7 @@ class RendererSpec extends Specification {
       render(Field(Seq(nonnull, pattern), Default, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\n@Pattern\nString text = \"some text\";")
     }
     "render imports" in {
-      render(TypeRef(Package(Seq("javax", "annotation")), "Nonnull")) must equalTo("import javax.annotation.Nonnull;")
+      render(TypeRef.fullyQualifiedName("javax.annotation.Nonnull")) must equalTo("import javax.annotation.Nonnull;")
     }
     "render methods" in {
       render(Method(Seq(), Default, false, false, string, Seq(), "getName", "return name;")) must equalTo("String getName() {\nreturn name;\n}")
@@ -68,9 +78,11 @@ class RendererSpec extends Specification {
       render(Method(Seq(), Public, true, false, string, Seq(numberArg), "convert", "return String.format(\"a number %s\", number);")) must equalTo("public static String convert(int number) {\nreturn String.format(\"a number %s\", number);\n}")
       render(Method(Seq(), Protected, false, true, list, Seq(numberArg, textArg, listArg), "doSomething", "return null;")) must equalTo("protected final List doSomething(int number, @Nonnull final String text, @Nonnull final List list) {\nreturn null;\n}")
     }
-    "render packages" in {
-      render(Package(Seq())) must equalTo("")
-      render(Package(Seq("javax", "annotation"))) must equalTo("package javax.annotation")
+    "render package in compilation unit" in {
+      render(CompilationUnit(None, Set(), Seq())) must equalTo("")
+
+      val pkg = Package(Seq("org", "github", "before"))
+      render(CompilationUnit(Some(pkg), Set(), Seq())) must equalTo("package org.github.before;")
     }
     "render primitives" in {
       render(Boolean) must equalTo("boolean")

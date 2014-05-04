@@ -14,7 +14,7 @@ class ImmutableObjectGeneratorSpec extends Specification {
     val methods = Seq(Method(Seq(), Public, false, true, listType, Seq(), "getMyList", null))
     val clazz = Class(Public, true, "MyTestClass", fields, methods, Seq())
     val types = Seq(clazz)
-    val compilationUnit = CompilationUnit(pkg, imports, types)
+    val compilationUnit = CompilationUnit(Some(pkg), imports, types)
 
     "starts with package" in {
       generate(compilationUnit, Settings()) must startWith("package")
