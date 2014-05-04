@@ -5,6 +5,14 @@ import Renderer._
 
 class RendererSpec extends Specification {
 
+  "GenericTypeDeclaration" should {
+    "validate that name must be filled" in {
+      GenericTypeDeclaration("", null) must throwA(new IllegalArgumentException("requirement failed: name must not be blank"))
+      GenericTypeDeclaration("   ", null) must throwA(new IllegalArgumentException("requirement failed: name must not be blank"))
+      GenericTypeDeclaration("T", null) must equalTo(GenericTypeDeclaration("T", null))
+    }
+  }
+
   "Package" should {
     "validate that parts must not be empty" in {
       Package(Seq()) must throwA(new IllegalArgumentException("requirement failed: package must not be empty"))
@@ -32,9 +40,9 @@ class RendererSpec extends Specification {
   "Renderer" should {
 
     // imports
-    val list = TypeRef.fullyQualifiedName("java.util.List");
-    val long = TypeRef.fullyQualifiedName("java.lang.Long");
-    val string = TypeRef.fullyQualifiedName("java.lang.String");
+    val list = TypeRef.fullyQualifiedName("java.util.List")
+    val long = TypeRef.fullyQualifiedName("java.lang.Long")
+    val string = TypeRef.fullyQualifiedName("java.lang.String")
 
     // annotations
     val nonnull = Annotation(Package(Seq("javax", "annotation")), "Nonnull")
@@ -68,6 +76,15 @@ class RendererSpec extends Specification {
 
       val pattern = Annotation(Package(Seq("javax", "annotation")), "Pattern")
       render(Field(Seq(nonnull, pattern), Default, false, false, string, "text", "\"some text\"")) must equalTo("@Nonnull\n@Pattern\nString text = \"some text\";")
+
+      val listOfStrings = TypeRef.fullyQualifiedName("java.util.List", Seq(GenericType(string)))
+      render(Field(Seq(), Public, false, false, listOfStrings, "strings")) must equalTo("public List<String> strings;")
+
+      val listOfListOfStrings = TypeRef.fullyQualifiedName("java.util.List", Seq(GenericType(listOfStrings)))
+      render(Field(Seq(), Public, false, false, listOfListOfStrings, "strings")) must equalTo("public List<List<String>> strings;")
+
+      val withGenericTypeDecl = TypeRef.fullyQualifiedName("java.util.List", Seq(GenericTypeDeclaration("T", null)))
+      render(Field(Seq(), Public, false, false, withGenericTypeDecl, "something")) must equalTo("public List<T> something;")
     }
     "render imports" in {
       render(TypeRef.fullyQualifiedName("javax.annotation.Nonnull")) must equalTo("import javax.annotation.Nonnull;")

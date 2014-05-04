@@ -33,7 +33,8 @@ object Renderer {
       fields,
       methods,
       types,
-      pkg) =>
+      pkg,
+      generics) =>
       renderAccessModifier(accessModifier) +
         renderFinalModifier(finalModifier) +
         "class " + name + " {" +
@@ -67,7 +68,7 @@ object Renderer {
         renderName(name) +
         renderArguments(args) +
         renderMethodBody(body)
-    case TypeRef(pkg, name) => if (pkg.isEmpty) "" else "import " + renderPackage(pkg.get) + "." + name + ";"
+    case TypeRef(pkg, name, _) => if (pkg.isEmpty) "" else "import " + renderPackage(pkg.get) + "." + name + ";"
   }
 
   private def renderAccessModifier(accessModifier: AccessModifier): String = if (accessModifier == Default) "" else render(accessModifier) + " "
@@ -78,15 +79,15 @@ object Renderer {
   private def renderFieldType(t: Type): String = t match {
     case p: Primitive => render(p)
     case Void => "Void"
-    case TypeRef(pkg, name) => name
-    case Class(
-      accessModifier,
-      finalModifier,
-      name,
-      fields,
-      methods,
-      types,
-      pkg) => name
+    case TypeRef(pkg, name, generics) => name + renderGenerics(generics)
+    case Class(_, _, name, _, _, _, _, generics) => name + renderGenerics(generics)
+  }
+  private def renderGenerics(generics: Seq[Generic]): String =
+    if (generics.isEmpty) ""
+    else "<" + generics.map(renderGeneric(_)).mkString(", ") + ">"
+  private def renderGeneric(generic: Generic): String = generic match {
+    case GenericType(t) => renderFieldType(t)
+    case GenericTypeDeclaration(name, refType) => name
   }
   private def renderMethodBody(body: String): String = s"{\n$body\n}"
   private def renderName(name: String): String = " " + name
@@ -111,7 +112,18 @@ case class Annotation(
 /**
  * A data type that can be a primitive type that are built in to the Java language or a reference type.
  */
-sealed trait Type extends Renderable {
+sealed trait Type extends Renderable
+
+/**
+ * A simple data type is a primitive type or void.
+ */
+sealed trait SimpleType extends Type
+
+/**
+ * A data type that can be a primitive type that are built in to the Java language or a reference type.
+ */
+sealed trait ReferenceType extends Type {
+  def isGenericType: Boolean
   def name: String
   def pkg: Option[Package]
 }
@@ -119,7 +131,7 @@ sealed trait Type extends Renderable {
 /**
  * A definition of a reference type e.g. an interface, class or enum.
  */
-sealed trait TypeDefinition extends Type with Renderable
+sealed trait TypeDefinition extends ReferenceType with Renderable
 
 case class CompilationUnit(val pkg: Option[Package], val imports: Set[TypeRef], val types: Seq[TypeDefinition]) extends Renderable
 
@@ -129,28 +141,27 @@ case class Package(val parts: Seq[String] = Seq()) {
 
 case class TypeRef(
   val pkg: Option[Package],
-  val name: String)
-  extends Type with Renderable {
+  val name: String,
+  val generics: Seq[Generic] = Seq())
+  extends ReferenceType with Renderable {
   require(pkg.isDefined, "package must be defined")
   require(!name.isEmpty, "name must not be empty")
+  def isGenericType = !generics.isEmpty
 }
 
 object TypeRef {
-  def fullyQualifiedName(fqn: String): TypeRef = {
+  def fullyQualifiedName(fqn: String, generics: Seq[Generic] = Seq()): TypeRef = {
     val parts = fqn.split('.')
     val pkg = Some(Package(parts.dropRight(1)))
     val name = parts.last
-    TypeRef(pkg, name)
+    TypeRef(pkg, name, generics)
   }
 }
 
 /**
  * Primitive data types are defined by the language itself.
  */
-sealed abstract class Primitive extends Type with Renderable {
-  def name = this.getClass.getName
-  def pkg = None
-}
+sealed abstract class Primitive extends SimpleType with Renderable
 case object Boolean extends Primitive
 case object Byte extends Primitive
 case object Char extends Primitive
@@ -172,9 +183,15 @@ case object Protected extends AccessModifier
 /**
  * Void is not a type and means *nothing*
  */
-case object Void extends Type with Renderable {
-  def name = this.getClass.getName
-  def pkg = None
+case object Void extends SimpleType with Renderable
+
+sealed trait Generic
+case class GenericType(val refType: ReferenceType) extends Generic
+case class GenericTypeDeclaration(
+  val name: String,
+  val refType: ReferenceType)
+  extends Generic {
+  require(!name.trim.isEmpty, "name must not be blank")
 }
 
 case class Class(
@@ -184,8 +201,11 @@ case class Class(
   val fields: Seq[Field],
   val methods: Seq[Method],
   val types: Seq[TypeDefinition],
-  val pkg: Option[Package] = None)
-  extends TypeDefinition
+  val pkg: Option[Package] = None,
+  val generics: Seq[Generic] = Seq())
+  extends TypeDefinition {
+  def isGenericType = !generics.isEmpty;
+}
 
 case class Field(
   val annotations: Seq[Annotation],
@@ -194,7 +214,7 @@ case class Field(
   val finalModifier: Boolean,
   val `type`: Type,
   val name: String,
-  val value: String)
+  val value: String = null)
   extends Renderable
 
 case class Argument(
