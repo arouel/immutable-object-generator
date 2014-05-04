@@ -32,7 +32,8 @@ object Renderer {
       name,
       fields,
       methods,
-      types) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n\n" + renderWithSeparator(fields, "\n\n") + "\n\n}"
+      types,
+      pkg) => renderAccessModifier(accessModifier) + renderFinalModifier(finalModifier) + s"class $name {\n\n" + renderWithSeparator(fields, "\n\n") + "\n\n}"
     case CompilationUnit(pkg, imports, types) => render(pkg) + "\n\n" + renderWithSeparator(imports, "\n") + "\n\n" + renderWithSeparator(types, "\n")
     case Field(
       annotations,
@@ -72,7 +73,8 @@ object Renderer {
       name,
       fields,
       methods,
-      types) => name
+      types,
+      pkg) => name
   }
   private def renderMethodBody(body: String): String = s"{\n$body\n}"
   private def renderName(name: String): String = " " + name
@@ -91,18 +93,19 @@ case class Annotation(
 /**
  * A data type that can be a primitive type that are built in to the Java language or a reference type.
  */
-sealed trait Type extends Renderable
+sealed trait Type extends Renderable {
+  def name: String
+  def pkg: Package
+}
 
 /**
  * A definition of a reference type e.g. an interface, class or enum.
  */
-sealed trait TypeDefinition extends Type with Renderable {
-  def name: String
-}
+sealed trait TypeDefinition extends Type with Renderable
 
 case class CompilationUnit(val pkg: Package, val imports: Set[TypeRef], val types: Seq[TypeDefinition]) extends Renderable
 
-case class Package(val parts: Seq[String]) extends Renderable
+case class Package(val parts: Seq[String] = Seq()) extends Renderable
 
 case class TypeRef(
   val pkg: Package,
@@ -124,7 +127,10 @@ object TypeRef {
 /**
  * Primitive data types are defined by the language itself.
  */
-sealed abstract class Primitive extends Type with Renderable
+sealed abstract class Primitive extends Type with Renderable {
+  def name = this.getClass.getName
+  def pkg = Package()
+}
 case object Boolean extends Primitive
 case object Byte extends Primitive
 case object Char extends Primitive
@@ -146,7 +152,10 @@ case object Protected extends AccessModifier
 /**
  * Void is not a type and means *nothing*
  */
-case object Void extends Type with Renderable
+case object Void extends Type with Renderable {
+  def name = this.getClass.getName
+  def pkg = Package()
+}
 
 case class Class(
   val accessModifier: AccessModifier,
@@ -154,7 +163,8 @@ case class Class(
   override val name: String,
   val fields: Seq[Field],
   val methods: Seq[Method],
-  val types: Seq[TypeDefinition])
+  val types: Seq[TypeDefinition],
+  val pkg: Package = Package())
   extends TypeDefinition
 
 case class Field(
