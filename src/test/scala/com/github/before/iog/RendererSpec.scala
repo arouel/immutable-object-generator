@@ -65,6 +65,13 @@ class RendererSpec extends Specification {
       render(Argument(Seq(nonnull), false, string, "text")) must equalTo("@Nonnull String text")
       render(Argument(Seq(nonnull, nonnegative), true, long, "number")) must equalTo("@Nonnull @Nonnegative final Long number")
     }
+    "render constructors" in {
+      render(Constructor(Default, Seq(), "Test", "this.name = name;")) must equalTo("Test() {\nthis.name = name;\n}")
+      render(Constructor(Private, Seq(), "Test", "")) must equalTo("private Test() {}")
+      render(Constructor(Public, Seq(), "Test", "")) must equalTo("public Test() {}")
+      render(Constructor(Public, Seq(numberArg), "Converter", "this.number = number;")) must equalTo("public Converter(int number) {\nthis.number = number;\n}")
+      render(Constructor(Protected, Seq(numberArg, textArg, listArg), "Something", "")) must equalTo("protected Something(int number, @Nonnull final String text, @Nonnull final List list) {}")
+    }
     "render fields" in {
       render(Field(Seq(), Default, false, false, Char, "character", "'c'")) must equalTo("char character = 'c';")
       render(Field(Seq(), Private, false, true, Int, "number", null)) must equalTo("private final int number;")
@@ -90,6 +97,7 @@ class RendererSpec extends Specification {
       render(TypeRef.fullyQualifiedName("javax.annotation.Nonnull")) must equalTo("import javax.annotation.Nonnull;")
     }
     "render methods" in {
+      render(Method(Seq(), Default, false, false, string, Seq(), "getName", "")) must equalTo("String getName() {}")
       render(Method(Seq(), Default, false, false, string, Seq(), "getName", "return name;")) must equalTo("String getName() {\nreturn name;\n}")
       render(Method(Seq(nullable), Public, false, false, string, Seq(), "getName", "return name;")) must equalTo("@Nullable\npublic String getName() {\nreturn name;\n}")
       render(Method(Seq(), Public, true, false, string, Seq(numberArg), "convert", "return String.format(\"a number %s\", number);")) must equalTo("public static String convert(int number) {\nreturn String.format(\"a number %s\", number);\n}")
@@ -117,7 +125,7 @@ class RendererSpec extends Specification {
     "render class with fields" in {
       val field1 = Field(Seq(), Private, true, true, Int, "myNumber1", "23")
       val field2 = Field(Seq(), Protected, false, false, Int, "myNumber2", "42")
-      val clazz = Class(Public, false, "MyClass", Seq(field1, field2), Seq(), Seq())
+      val clazz = Class(Public, false, "MyClass", Seq(field1, field2), Seq(), Seq(), Seq())
       render(clazz) must contain("class MyClass")
       render(clazz) must contain("private static final int myNumber1 = 23;")
       render(clazz) must contain("protected int myNumber2 = 42;")

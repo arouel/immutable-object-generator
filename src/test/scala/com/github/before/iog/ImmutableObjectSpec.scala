@@ -18,7 +18,7 @@ class ImmutableObjectSpec extends Specification {
     val listMethod = Method(Seq(), Public, false, false, listOfStringsType, Seq(), "getStrings", "return this." + listField.name + ";")
     val methods = Seq(numberMethod, listMethod)
     val className = "TestImmutable"
-    val clazz = Class(Public, true, className, fields, methods, Seq(), Some(pkg))
+    val clazz = Class(Public, true, className, fields, Seq(), methods, Seq(), Some(pkg))
     val types = Seq(clazz)
     val compilationUnit = CompilationUnit(Some(pkg), imports, types)
 

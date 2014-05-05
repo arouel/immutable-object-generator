@@ -31,6 +31,7 @@ object Renderer {
       finalModifier,
       name,
       fields,
+      constructors,
       methods,
       types,
       pkg,
@@ -39,11 +40,21 @@ object Renderer {
         renderFinalModifier(finalModifier) +
         "class " + name + " {" +
         renderSection(fields, "\n\n") +
+        renderSection(constructors, "\n\n") +
         "\n\n}"
     case CompilationUnit(pkg, imports, types) =>
       renderPackageDeclaration(pkg) +
         renderSection(imports) +
         renderSection(types)
+    case Constructor(
+      accessModifier,
+      args,
+      name,
+      body) =>
+      renderAccessModifier(accessModifier) +
+        name +
+        renderArguments(args) +
+        renderMethodBody(body)
     case Field(
       annotations,
       accessModifier,
@@ -80,7 +91,7 @@ object Renderer {
     case p: Primitive => render(p)
     case Void => "Void"
     case TypeRef(pkg, name, generics) => name + renderGenerics(generics)
-    case Class(_, _, name, _, _, _, _, generics) => name + renderGenerics(generics)
+    case Class(_, _, name, _, _, _, _, _, generics) => name + renderGenerics(generics)
   }
   private def renderGenerics(generics: Seq[Generic]): String =
     if (generics.isEmpty) ""
@@ -89,7 +100,7 @@ object Renderer {
     case GenericType(t) => renderFieldType(t)
     case GenericTypeDeclaration(name, refType) => name
   }
-  private def renderMethodBody(body: String): String = s"{\n$body\n}"
+  private def renderMethodBody(body: String): String = if (body.isEmpty()) "{}" else "{\n" + body + "\n}"
   private def renderName(name: String): String = " " + name
   private def renderPackage(pkg: Package): String = pkg.parts.mkString(".")
   private def renderPackageDeclaration(pkg: Option[Package]): String = pkg match {
@@ -199,6 +210,7 @@ case class Class(
   val finalModifier: Boolean,
   override val name: String,
   val fields: Seq[Field],
+  val constructors: Seq[Constructor],
   val methods: Seq[Method],
   val types: Seq[TypeDefinition],
   val pkg: Option[Package] = None,
@@ -230,6 +242,13 @@ case class Method(
   val staticModifier: Boolean,
   val finalModifier: Boolean,
   val returnType: Type,
+  val args: Seq[Argument],
+  val name: String,
+  val body: String)
+  extends Renderable
+
+case class Constructor(
+  val accessModifier: AccessModifier,
   val args: Seq[Argument],
   val name: String,
   val body: String)

@@ -21,7 +21,7 @@ object ImmutableObject {
     val imports = typeRefs(members)
     val fields = this.fields(members)
     val methods = accessorMethods(members)
-    val immutable = Class(Public, true, name, fields, methods, Seq(), Some(pkg))
+    val immutable = Class(Public, true, name, fields, Seq(), methods, Seq(), Some(pkg))
     val types = Seq(immutable)
     CompilationUnit(Some(pkg), imports, types)
   }
