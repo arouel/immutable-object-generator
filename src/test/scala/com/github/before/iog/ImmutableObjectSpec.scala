@@ -5,6 +5,11 @@ import ImmutableObject._
 
 class ImmutableObjectSpec extends Specification {
 
+  def fieldToArg(field: Field): Argument = Argument(Seq(), true, field.`type`, field.name)
+  def fieldToAssignment(field: Field): String = "this." + field.name + " = " + field.name + ";"
+  def fieldsToArgs(fields: Seq[Field]): Seq[Argument] = fields.map(fieldToArg(_))
+  def fieldsToAssignments(fields: Seq[Field]): String = fields.map(fieldToAssignment(_)).mkString("\n")
+
   "ImmutableObject" should {
 
     val pkg = Package(Seq("org", "github", "before", "test"))
@@ -18,7 +23,8 @@ class ImmutableObjectSpec extends Specification {
     val listMethod = Method(Seq(), Public, false, false, listOfStringsType, Seq(), "getStrings", "return this." + listField.name + ";")
     val methods = Seq(numberMethod, listMethod)
     val className = "TestImmutable"
-    val clazz = Class(Public, true, className, fields, Seq(), methods, Seq(), Some(pkg))
+    val constr = Constructor(Public, fieldsToArgs(fields), className, fieldsToAssignments(fields))
+    val clazz = Class(Public, true, className, fields, Seq(constr), methods, Seq(), Some(pkg))
     val types = Seq(clazz)
     val compilationUnit = CompilationUnit(Some(pkg), imports, types)
 
@@ -26,6 +32,7 @@ class ImmutableObjectSpec extends Specification {
       val number = Member("number", Int)
       val strings = Member("strings", TypeRef.fullyQualifiedName("java.util.List", Seq(GenericType(stringType))))
       val members = Seq(number, strings)
+      Renderer.render(define(pkg, className, members)) must equalTo(Renderer.render(CompilationUnit(Some(pkg), imports, types)))
       define(pkg, className, members) must equalTo(CompilationUnit(Some(pkg), imports, types))
     }
 
