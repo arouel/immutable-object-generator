@@ -21,11 +21,11 @@ class ImmutableObjectSpec extends Specification {
     val fields = Seq(numberField, listField)
     val numberMethod = Method(Seq(), Public, false, false, Int, Seq(), "getNumber", "return this." + numberField.name + ";")
     val listMethod = Method(Seq(), Public, false, false, listOfStringsType, Seq(), "getStrings", "return this." + listField.name + ";")
-    val methods = Seq(numberMethod, listMethod)
     val className = "TestImmutable"
+    val methods = Seq(equalsMethod(className, fields), numberMethod, listMethod)
     val constr = Constructor(Public, fieldsToArgs(fields), className, fieldsToAssignments(fields))
-    val clazz = Class(Public, true, className, fields, Seq(constr), methods, Seq(), Some(pkg))
-    val types = Seq(clazz)
+    val immutable = Class(Public, true, className, fields, Seq(constr), methods, Seq(), Some(pkg))
+    val types = Seq(immutable)
     val compilationUnit = CompilationUnit(Some(pkg), imports, types)
 
     "define an immutable object" in {
@@ -34,6 +34,21 @@ class ImmutableObjectSpec extends Specification {
       val members = Seq(number, strings)
       Renderer.render(define(pkg, className, members)) must equalTo(Renderer.render(CompilationUnit(Some(pkg), imports, types)))
       define(pkg, className, members) must equalTo(CompilationUnit(Some(pkg), imports, types))
+    }
+
+    "equalsMethod of an immutable object" in {
+      val overrideAnnotation = Annotation(Package(Seq("java", "lang")), "Override")
+      val objArg = Argument(Seq(), true, TypeRef.fullyQualifiedName("java.lang.Object"), "obj")
+      val body = s"""if (this == obj) return true;
+if (obj == null) return false;
+if (getClass() != obj.getClass()) return false;
+$className other = ($className) obj;
+if (number != other.number) return false;
+if (strings == null) {
+if (other.strings != null) return false;
+} else if (!strings.equals(other.strings)) return false;
+return true;"""
+      equalsMethod(className, fields) must equalTo(Method(Seq(overrideAnnotation), Public, false, false, Boolean, Seq(objArg), "equals", body))
     }
 
   }

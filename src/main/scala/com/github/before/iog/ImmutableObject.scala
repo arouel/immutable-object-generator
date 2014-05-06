@@ -13,7 +13,7 @@ object ImmutableObject {
     val imports = typeRefs(members)
     val fields = this.fields(members)
     val constr = constructor(name, members)
-    val methods = accessorMethods(members)
+    val methods = Seq(equalsMethod(name, fields)) ++ accessorMethods(members)
     val immutable = Class(Public, true, name, fields, Seq(constr), methods, Seq(), Some(pkg))
     val types = Seq(immutable)
     CompilationUnit(Some(pkg), imports, types)
@@ -32,6 +32,35 @@ object ImmutableObject {
   private def constructor(name: String, members: Seq[Member]): Constructor = Constructor(Public, arguments(members), name, constructorBody(members))
 
   private def constructorBody(members: Seq[Member]): String = members.map(memberToFieldAssignment(_)).mkString("\n")
+
+  val objectTypeRef = TypeRef.fullyQualifiedName("java.lang.Object")
+  val overrideTypeRef = TypeRef.fullyQualifiedName("java.lang.Override")
+  val overrideAnnotation = Annotation(overrideTypeRef.pkg.get, overrideTypeRef.name)
+
+  def equalsMethod(name: String, fields: Seq[Field]): Method = {
+    val obj = Argument(Seq(), true, objectTypeRef, "obj")
+    val other = "other"
+    def equalsBody(): String = {
+      s"if (this == ${obj.name}) return true;\n" +
+        s"if (${obj.name} == null) return false;\n" +
+        s"if (getClass() != ${obj.name}.getClass()) return false;\n" +
+        s"$name $other = ($name) ${obj.name};\n" +
+        fields.map(equalsFieldBlock(_)).mkString("\n") +
+        "\nreturn true;"
+    }
+    def equalsFieldBlock(f: Field): String = {
+      f.`type` match {
+        case p: Primitive =>
+          s"if (${f.name} != ${other}.${f.name}) return false;"
+        case r: ReferenceType =>
+          s"if (${f.name} == null) {\n" +
+            s"if (${other}.${f.name} != null) return false;\n" +
+            s"} else if (!${f.name}.equals(${other}.${f.name})) return false;"
+        case Void => ""
+      }
+    }
+    Method(Seq(overrideAnnotation), Public, false, false, Boolean, Seq(obj), "equals", equalsBody)
+  }
 
   private def fields(members: Seq[Member]): Seq[Field] = members.map(memberToField(_))
 
